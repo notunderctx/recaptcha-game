@@ -1,0 +1,63 @@
+name: Deploy Preact site to GitHub Pages
+
+on:
+  # Trigger deployment on pushes to the 'main' branch
+  push:
+    branches:
+      - main
+
+  # Allows you to manually trigger this workflow
+  workflow_dispatch:
+
+# Set permissions for the GitHub token
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Build job
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16' 
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Build the project
+        run: |
+          npm run build  # Generates the 'dist' folder
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist  
+
+  # Deployment job
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist 
+
